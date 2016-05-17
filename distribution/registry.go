@@ -90,9 +90,10 @@ func NewV2Repository(ctx context.Context, repoInfo *registry.RepositoryInfo, end
 			},
 			ClientID: registry.AuthClientID,
 		}
+		hmacHandler := auth.NewHMACHandler(creds)
 		tokenHandler := auth.NewTokenHandlerWithOptions(tokenHandlerOptions)
 		basicHandler := auth.NewBasicHandler(creds)
-		modifiers = append(modifiers, auth.NewAuthorizer(challengeManager, tokenHandler, basicHandler))
+		modifiers = append(modifiers, auth.NewAuthorizer(challengeManager, hmacHandler, tokenHandler, basicHandler))
 	}
 	tr := transport.NewTransport(base, modifiers...)
 

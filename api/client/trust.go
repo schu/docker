@@ -180,9 +180,10 @@ func (cli *DockerCli) getNotaryRepository(repoInfo *registry.RepositoryInfo, aut
 	}
 
 	creds := simpleCredentialStore{auth: authConfig}
+	hmacHandler := auth.NewHMACHandler(creds)
 	tokenHandler := auth.NewTokenHandler(authTransport, creds, repoInfo.FullName(), actions...)
 	basicHandler := auth.NewBasicHandler(creds)
-	modifiers = append(modifiers, transport.RequestModifier(auth.NewAuthorizer(challengeManager, tokenHandler, basicHandler)))
+	modifiers = append(modifiers, transport.RequestModifier(auth.NewAuthorizer(challengeManager, hmacHandler, tokenHandler, basicHandler)))
 	tr := transport.NewTransport(base, modifiers...)
 
 	return client.NewNotaryRepository(cli.trustDirectory(), repoInfo.FullName(), server, tr, cli.getPassphraseRetriever())

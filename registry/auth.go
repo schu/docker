@@ -127,9 +127,10 @@ func loginV2(authConfig *types.AuthConfig, endpoint APIEndpoint, userAgent strin
 		OfflineAccess: true,
 		ClientID:      AuthClientID,
 	}
+	hmacHandler := auth.NewHMACHandler(creds)
 	tokenHandler := auth.NewTokenHandlerWithOptions(tokenHandlerOptions)
 	basicHandler := auth.NewBasicHandler(creds)
-	modifiers = append(modifiers, auth.NewAuthorizer(challengeManager, tokenHandler, basicHandler))
+	modifiers = append(modifiers, auth.NewAuthorizer(challengeManager, hmacHandler, tokenHandler, basicHandler))
 	tr := transport.NewTransport(authTransport, modifiers...)
 
 	loginClient := &http.Client{

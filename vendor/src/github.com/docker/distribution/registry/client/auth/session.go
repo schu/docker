@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -477,4 +479,42 @@ func (bh *basicHandler) AuthorizeRequest(req *http.Request, params map[string]st
 		}
 	}
 	return ErrNoBasicAuthCredentials
+}
+
+type hmacHandler struct {
+	creds CredentialStore
+}
+
+// NewHMACHandler creates a new HMAC handler
+func NewHMACHandler(creds CredentialStore) AuthenticationHandler {
+	return &hmacHandler{
+		creds: creds,
+	}
+}
+
+func (*hmacHandler) Scheme() string {
+	return "docker-hmac-v1"
+}
+
+func (h *hmacHandler) AuthorizeRequest(req *http.Request, params map[string]string) error {
+	if h.creds != nil {
+		username, password := h.creds.Basic(req.URL)
+		if username != "" && password != "" {
+			realm, ok := params["realm"]
+			if !ok {
+				return errors.New("no realm specified for hmac auth challenge")
+			}
+			hmac := h.generateHMAC(realm, password)
+			req.Header.Set("Authorization", fmt.Sprintf("Docker-HMAC-v1 %s", hmac))
+			return nil
+		}
+	}
+	return ErrNoBasicAuthCredentials
+}
+
+func (*hmacHandler) generateHMAC(payload, password string) string {
+	mac := hmac.New(sha256.New, []byte(password))
+	mac.Write([]byte(payload))
+	sum := mac.Sum(nil)
+	return fmt.Sprintf("%x", sum)
 }
